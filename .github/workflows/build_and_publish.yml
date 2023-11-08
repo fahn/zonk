@@ -1,0 +1,37 @@
+name: Build and Publish Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v2
+        with:
+          java-version: 21
+
+      - name: Build Android App
+        run: ./gradlew assembleRelease
+
+      - name: Set up Google Play CLI
+        uses: actions/checkout@v2
+        with:
+          repository: actions/setup-google-cloud-sdk
+          ref: v0.1.2
+
+      - name: Publish to Google Play Store
+        run: |
+          echo ${{ secrets.GOOGLE_PLAY_JSON_KEY }} > /tmp/google-play-key.json
+          gcloud auth activate-service-account --key-file=/tmp/google-play-key.json
+          bundletool build-apks --bundle=/path/to/your/app/build/outputs/bundle/release/app-release.aab --output=/tmp/release.apks
+          bundletool install-apks --apks=/tmp/release.apks
+
+        env:
+          PLAY_STORE_CREDS: ${{ secrets.GOOGLE_PLAY_JSON_KEY }}
